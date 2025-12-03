@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mirage Prompt Guide Playground</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --cyan: #0ac4ff;
+      --cyan-soft: rgba(10, 196, 255, 0.16);
+      --bg: #ffffff;
+      --text-main: #020617;
+      --text-muted: #6b7280;
+      --border: #e5f2fb;
+      --radius-lg: 18px;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.06);
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Inter", "Segoe UI", sans-serif;
+      --fast: 170ms ease-out;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background: #f5fbff;
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 20px 16px 28px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .frame {
+      width: 100%;
+      max-width: 960px;
+      background: var(--bg);
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      box-shadow: var(--shadow-soft);
+      padding: 16px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .frame {
+        padding: 14px 12px 14px;
+      }
+    }
+
+    .scene-bar {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .scene-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f9feff;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #03658c;
+    }
+
+    .scene-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--cyan);
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 14px 14px 12px;
+      background: #ffffff;
+    }
+
+    .card + .card {
+      margin-top: 2px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .card-header h2 {
+      margin: 0;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+
+    .chip {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      font-size: 11px;
+      background: #f9feff;
+      color: #03658c;
+    }
+
+    /* prompt card */
+
+    .prompt-shell {
+      border-radius: 16px;
+      background: #020617;
+      color: #e5e7eb;
+      padding: 10px 11px 8px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .prompt-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 5px;
+    }
+
+    .prompt-tag {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      padding: 2px 6px;
+      background: #020617;
+    }
+
+    .prompt-body {
+      white-space: pre-wrap;
+    }
+
+    .prompt-token {
+      position: relative;
+      padding: 0 1px;
+      border-radius: 4px;
+      background: rgba(10, 196, 255, 0.08);
+      border-bottom: 1px dashed rgba(10, 196, 255, 0.8);
+      cursor: default;
+      transition: background var(--fast), border-color var(--fast), color var(--fast),
+        transform var(--fast);
+    }
+
+    .prompt-token:hover {
+      background: rgba(10, 196, 255, 0.2);
+      border-color: #f9fafb;
+      color: #f9fafb;
+      transform: translateY(-0.5px);
+    }
+
+    .prompt-token::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 0;
+      bottom: 100%;
+      transform: translateY(6px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 5px 8px;
+      background: #ffffff;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: #0f172a;
+      font-size: 10px;
+      white-space: nowrap;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+      transition: opacity var(--fast), transform var(--fast);
+      z-index: 10;
+    }
+
+    .prompt-token::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      bottom: 100%;
+      transform: translateY(6px);
+      opacity: 0;
+      border-width: 6px 6px 0 6px;
+      border-style: solid;
+      border-color: #e5e7eb transparent transparent transparent;
+      transition: opacity var(--fast), transform var(--fast);
+      z-index: 9;
+    }
+
+    .prompt-token:hover::after,
+    .prompt-token:hover::before {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .prompt-row-bottom {
+      margin-top: 7px;
+      padding-top: 7px;
+      border-top: 1px dashed rgba(148, 163, 184, 0.45);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .prompt-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--cyan);
+      margin-right: 6px;
+    }
+
+    .prompt-row-bottom span {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* avatar card */
+
+    .avatar-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .avatar-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 12px;
+    }
+
+    .avatar-top-text span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-top: 1px;
+    }
+
+    .variant-tabs {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: 999px;
+      background: #f5fbff;
+      border: 1px solid var(--border);
+      gap: 2px;
+    }
+
+    .variant-tab {
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      font-size: 11px;
+      padding: 5px 10px;
+      cursor: pointer;
+      color: #64748b;
+      transition: background var(--fast), color var(--fast), box-shadow var(--fast);
+    }
+
+    .variant-tab.active {
+      background: var(--cyan);
+      color: #ffffff;
+      box-shadow: 0 6px 14px rgba(8, 145, 178, 0.4);
+    }
+
+    .avatar-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+    }
+
+    @media (max-width: 640px) {
+      .avatar-body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .avatar-preview {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .avatar-frame {
+      width: 50%;
+      max-width: 360px;
+      aspect-ratio: 16 / 9;
+      height: 300px;
+      border-radius: 16px;
+      background: radial-gradient(circle at 10% 0, #e0f7ff, #dbeafe);
+      border: 2px solid var(--cyan-soft);
+      overflow: hidden;
+      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.16);
+    }
+
+    .avatar-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .avatar-text-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .avatar-text-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .avatar-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .avatar-badge {
+      border-radius: 999px;
+      border: 1px dashed var(--border);
+      padding: 3px 8px;
+      font-size: 10px;
+      background: #f9fafb;
+      color: #475569;
+    }
+
+    /* footer controls */
+
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #dbeafe;
+      cursor: pointer;
+      transition: background var(--fast), transform var(--fast);
+    }
+
+    .dot.active {
+      background: var(--cyan);
+      transform: scale(1.25);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      font-size: 11px;
+      padding: 5px 10px;
+      cursor: pointer;
+      color: #0f172a;
+      transition: background var(--fast), box-shadow var(--fast), transform var(--fast),
+        border-color var(--fast);
+    }
+
+    .nav-btn span {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: #64748b;
+    }
+
+    .nav-btn:hover {
+      background: #f0fbff;
+      border-color: rgba(10, 196, 255, 0.8);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+      transform: translateY(-0.5px);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="frame">
+      <div class="scene-bar">
+        <div class="scene-pill">
+          <span class="scene-dot"></span>
+          <span id="scene-pill-text">Travel · Scene 1 of 3</span>
+        </div>
+        <div id="scene-pill-hint">Start with the actor, end with technical details.</div>
+      </div>
+
+      <!-- PROMPT CARD -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Generation prompt</h2>
+          <div class="chip" id="scene-chip">Travel · Scene 1 of 3</div>
+        </div>
+
+        <div class="prompt-shell">
+          <div class="prompt-row-top">
+            <span>Prompt generated avatar</span>
+            <span class="prompt-tag" id="variant-tag">Look 1 · Base description</span>
+          </div>
+          <div class="prompt-body" id="prompt-body"></div>
+          <div class="prompt-row-bottom">
+            <span><span class="prompt-dot"></span><span id="prompt-foot-main">Actor described first, environment and camera last.</span></span>
+            <span>Hover highlights to see prompt tips.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- AVATAR CARD -->
+      <section class="card avatar-card">
+        <div class="avatar-top-row">
+          <div class="avatar-top-text">
+            <strong id="avatar-scene-title">Travel creator at a landmark</strong>
+            <span id="avatar-scene-subtitle">One actor, three prompt variants.</span>
+          </div>
+          <div class="variant-tabs" id="variant-tabs"></div>
+        </div>
+
+        <div class="avatar-body">
+          <div class="avatar-preview">
+            <div class="avatar-frame">
+              <!-- you replace the src values below -->
+              <img id="avatar-image" src="" alt="Avatar look" />
+            </div>
+          </div>
+          <div>
+            <div class="avatar-text-title" id="variant-title">Look 1 · Base travel look</div>
+            <div class="avatar-text-note" id="variant-note"></div>
+            <div class="avatar-badges" id="variant-badges"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER / CAROUSEL CONTROLS -->
+      <footer class="footer-row">
+        <div class="dots">
+          <span>Scene</span>
+          <div id="dots"></div>
+        </div>
+        <div class="nav-buttons">
+          <button class="nav-btn" id="prev-scene">
+            ◀ <span>Previous</span>
+          </button>
+          <button class="nav-btn" id="next-scene">
+            <span>Next</span> ▶
+          </button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // Each tooltip maps to Actor Elements, Expression & Movement,
+    // or Environment & Technical Details from your guide.
+
+    const scenes = [
+      {
+        id: "travel",
+        label: "Travel",
+        title: "Travel creator at a landmark",
+        subtitle: "One actor, three prompt variants.",
+        pillHint: "Combine actor, behavior, environment, and camera in one scene.",
+        foot: "Describe the actor first, then expression, environment, and camera.",
+        variants: [
+          {
+            id: "look1",
+            label: "Look 1",
+            tag: "Look 1 · Base scene",
+            title: "Look 1 · Pastel dress at the Taj Mahal",
+            note:
+              "Baseline travel scene. Actor elements, movement, and environment all follow the order in the prompt guide.",
+            bullets: [
+              "Actor elements: persona, age, clothing, accessories.",
+              "Expression & movement: confident stance and smile.",
+              "Environment & technical: named landmark, time of day, wide-angle shot."
+            ],
+            img: "travel-look1.jpg", // replace with your image
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Actor element: persona + age.">stylish travel influencer in her late 20s</span> stands confidently in front of the <span class="prompt-token" data-tooltip="Environment: specific, recognisable location.">Taj Mahal</span>, wearing a <span class="prompt-token" data-tooltip="Actor elements: clothing and accessories.">flowing pastel dress and round sunglasses</span>, with a DSLR hanging from her shoulder. Her hair catches the breeze as she smiles toward the camera. Behind her, the iconic white marble monument glows under the soft morning light, with manicured gardens and a clear blue sky completing the scene. The shot is a <span class="prompt-token" data-tooltip="Technical detail: camera shot and framing.">wide-angle, cinematic frame</span>.`
+          },
+          {
+            id: "look2",
+            label: "Look 2",
+            tag: "Look 2 · Sunset + wardrobe change",
+            title: "Look 2 · Sunset look with hat",
+            note:
+              "Same actor, different lighting and outfit. Environment and technical details shift but the structure stays the same.",
+            bullets: [
+              "Actor elements stay consistent so the avatar feels like the same person.",
+              "Expression & movement: softer, more reflective pose.",
+              "Environment & technical: sunset timing, same location, similar framing."
+            ],
+            img: "travel-look2.jpg",
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Actor element: same persona, same age.">stylish travel influencer in her late 20s</span> poses in front of the <span class="prompt-token" data-tooltip="Environment: location + time/lighting.">Taj Mahal at sunset</span>, wearing a <span class="prompt-token" data-tooltip="Actor elements: wardrobe change for a new look.">rust-colored wrap dress and a wide-brim hat</span>, with a vintage film camera hanging from her shoulder. She turns slightly toward the monument with a relaxed smile. Warm golden-hour light wraps around her and the marble glows against a pink and orange sky. The shot is a <span class="prompt-token" data-tooltip="Technical detail: consistent travel framing.">wide-angle travel vlog frame</span>.`
+          },
+          {
+            id: "look3",
+            label: "Look 3",
+            tag: "Look 3 · Tighter framing",
+            title: "Look 3 · Close-up with soft background",
+            note:
+              "Here the actor fills more of the frame. Depth of field becomes one of the key technical details.",
+            bullets: [
+              "Actor elements: same creator, slightly stronger emphasis on expression.",
+              "Expression & movement: more intimate, talking-to-camera feel.",
+              "Environment & technical: landmark blurred, medium close-up, shallow depth of field."
+            ],
+            img: "travel-look3.jpg",
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Expression & movement: emotion up front.">smiling travel influencer in her late 20s</span> looks slightly off camera, with the <span class="prompt-token" data-tooltip="Environment: landmark moved into the background.">Taj Mahal softly blurred behind her</span>. She wears a <span class="prompt-token" data-tooltip="Actor elements: clothing and simple accessories.">light pastel dress and simple gold jewelry</span> as sunlight catches her hair. The shot is a <span class="prompt-token" data-tooltip="Technical detail: camera shot and depth of field.">medium close-up with shallow depth of field</span>, giving a warm, personal travel diary look.`
+          }
+        ]
+      },
+      {
+        id: "business",
+        label: "Business",
+        title: "Office brand explainer",
+        subtitle: "Same marketer, different setups.",
+        pillHint: "Actor, desk, and background should all match the business role.",
+        foot: "Tie wardrobe, environment, and framing to the same professional story.",
+        variants: [
+          {
+            id: "look1",
+            label: "Look 1",
+            tag: "Look 1 · Classic office look",
+            title: "Look 1 · Standard boardroom shot",
+            note:
+              "Straightforward business scene that mirrors the examples in the guide.",
+            bullets: [
+              "Actor elements: role, age, clothing, accessories.",
+              "Expression & movement: relaxed, confident posture.",
+              "Environment & technical: modern office, city skyline, medium shot."
+            ],
+            img: "business-look1.jpg",
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Actor element: role + age.">professional marketer in his mid-30s</span> sits at a <span class="prompt-token" data-tooltip="Environment: modern office location.">sleek glass desk in a modern office</span>, wearing a <span class="prompt-token" data-tooltip="Actor elements: business clothing.">tailored navy blazer over a crisp white shirt</span>, with a smartwatch on his wrist. He faces the camera with a relaxed, confident posture while a laptop sits open in front of him. Behind him, <span class="prompt-token" data-tooltip="Environment: background details.">tall windows reveal a city skyline and neutral decor</span>. The shot is a <span class="prompt-token" data-tooltip="Technical detail: camera shot.">medium shot at eye level with soft, even office lighting</span>.`
+          },
+          {
+            id: "look2",
+            label: "Look 2",
+            tag: "Look 2 · Standing by screen",
+            title: "Look 2 · Presentation beside a screen",
+            note:
+              "Same actor standing, with gestures and screen content emphasised under Expression & Movement and Environment.",
+            bullets: [
+              "Expression & movement: standing, gesturing toward the screen.",
+              "Environment: large screen with simple charts.",
+              "Technical: medium-wide shot to keep both actor and screen visible."
+            ],
+            img: "business-look2.jpg",
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Actor element: keep the same person.">professional marketer in his mid-30s</span> stands beside a <span class="prompt-token" data-tooltip="Environment: screen content that supports the topic.">large wall-mounted screen showing simple growth charts</span>, wearing a <span class="prompt-token" data-tooltip="Actor elements: slightly more relaxed wardrobe.">navy blazer with sleeves slightly rolled up</span>. He <span class="prompt-token" data-tooltip="Expression & movement: gestures.">gestures toward the chart with one hand while speaking</span>. Frosted glass walls and soft accent lighting frame the background. The shot is a <span class="prompt-token" data-tooltip="Technical detail: camera shot.">medium-wide office shot</span>.`
+          },
+          {
+            id: "look3",
+            label: "Look 3",
+            tag: "Look 3 · Casual remote setup",
+            title: "Look 3 · Work-from-home desk",
+            note:
+              "Same marketer in a home office. Clothing and environment both relax slightly while keeping a professional feel.",
+            bullets: [
+              "Actor elements: same person, more casual outfit.",
+              "Environment: home office cues instead of corporate glass.",
+              "Technical: medium close-up, warm natural lighting."
+            ],
+            img: "business-look3.jpg",
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Actor element: same role and age.">professional marketer in his mid-30s</span> sits at a <span class="prompt-token" data-tooltip="Environment: home office location.">wooden desk in a tidy home office</span>, wearing a <span class="prompt-token" data-tooltip="Actor elements: casual but neat clothing.">slim dark crewneck sweater</span>. A laptop rests on a stand with a small plant and notebook beside it. Behind him, a bookshelf and framed print are softly out of focus. The shot is a <span class="prompt-token" data-tooltip="Technical detail: camera shot + depth of field.">medium close-up at eye level with warm natural window light</span>.`
+          }
+        ]
+      },
+      {
+        id: "news",
+        label: "News",
+        title: "Studio news anchor",
+        subtitle: "One anchor, different studio treatments.",
+        pillHint: "Screen graphics and framing carry the news format.",
+        foot: "Keep the anchor consistent while changing the studio layout and graphics.",
+        variants: [
+          {
+            id: "look1",
+            label: "Look 1",
+            tag: "Look 1 · Standard studio shot",
+            title: "Look 1 · Daily news layout",
+            note:
+              "Baseline news anchor setup aligned with the guide’s camera and environment suggestions.",
+            bullets: [
+              "Actor elements: anchor description and clothing.",
+              "Expression & movement: composed, direct to camera.",
+              "Environment & technical: LED screens, world map, medium close-up."
+            ],
+            img: "news-look1.jpg",
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Actor element: role and mood.">composed news anchor with neatly styled hair in a navy blazer</span> sits at a glass desk, <span class="prompt-token" data-tooltip="Expression & movement: direct eye contact.">looking straight into the camera</span>. Behind him, <span class="prompt-token" data-tooltip="Environment: screens and graphics.">large LED screens show simple breaking news graphics and a world map</span>. The shot is a <span class="prompt-token" data-tooltip="Technical detail: camera shot.">medium close-up at eye level</span> with bright, even studio lighting and a subtle newsroom blur in the background.`
+          },
+          {
+            id: "look2",
+            label: "Look 2",
+            tag: "Look 2 · Side screen headline",
+            title: "Look 2 · Anchor with over-the-shoulder graphic",
+            note:
+              "Here the camera moves wider to fit a single headline panel beside the anchor.",
+            bullets: [
+              "Expression & movement: anchor stays composed but slightly turned.",
+              "Environment: over-the-shoulder graphic panel.",
+              "Technical: medium shot, balanced studio light."
+            ],
+            img: "news-look2.jpg",
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Actor element: same anchor.">composed news anchor in a navy blazer</span> sits at a glass desk, framed slightly to the left, with a <span class="prompt-token" data-tooltip="Environment: over-the-shoulder graphic.">large over-the-shoulder screen showing a single clear headline</span> on the right side of the frame. Studio lights reflect softly on the desk while muted monitors glow in the distance. The shot is a <span class="prompt-token" data-tooltip="Technical detail: wider framing for layout.">medium shot with balanced studio lighting</span>.`
+          },
+          {
+            id: "look3",
+            label: "Look 3",
+            tag: "Look 3 · Breaking news styling",
+            title: "Look 3 · Breaking news with red accents",
+            note:
+              "Same anchor, but the environment and lighting signal a breaking-news moment.",
+            bullets: [
+              "Expression & movement: more serious expression.",
+              "Environment: red graphics and tickers behind the anchor.",
+              "Technical: slightly tighter frame with brighter key light."
+            ],
+            img: "news-look3.jpg",
+            promptHtml: `
+A <span class="prompt-token" data-tooltip="Actor element: same anchor, new mood.">serious news anchor in a navy blazer</span> sits upright at a glass desk, <span class="prompt-token" data-tooltip="Expression & movement: strong eye contact.">looking directly into the camera</span>. Behind him, <span class="prompt-token" data-tooltip="Environment: graphics signal breaking news.">LED screens show bold red breaking news graphics and scrolling tickers</span>. The shot is a <span class="prompt-token" data-tooltip="Technical detail: framing and lighting.">medium close-up with slightly brighter key light</span>, creating a focused, high-stakes studio atmosphere.`
+          }
+        ]
+      }
+    ];
+
+    let currentSceneIndex = 0;
+    let currentVariantIndex = 0;
+
+    const scenePillText = document.getElementById("scene-pill-text");
+    const scenePillHint = document.getElementById("scene-pill-hint");
+    const sceneChip = document.getElementById("scene-chip");
+    const promptBodyEl = document.getElementById("prompt-body");
+    const promptFootMain = document.getElementById("prompt-foot-main");
+    const variantTag = document.getElementById("variant-tag");
+    const avatarSceneTitle = document.getElementById("avatar-scene-title");
+    const avatarSceneSubtitle = document.getElementById("avatar-scene-subtitle");
+    const variantTabsContainer = document.getElementById("variant-tabs");
+    const avatarImage = document.getElementById("avatar-image");
+    const variantTitle = document.getElementById("variant-title");
+    const variantNote = document.getElementById("variant-note");
+    const variantBadges = document.getElementById("variant-badges");
+    const dotsContainer = document.getElementById("dots");
+    const prevSceneBtn = document.getElementById("prev-scene");
+    const nextSceneBtn = document.getElementById("next-scene");
+
+    function buildDots() {
+      dotsContainer.innerHTML = "";
+      scenes.forEach((_, index) => {
+        const dot = document.createElement("div");
+        dot.className = "dot" + (index === currentSceneIndex ? " active" : "");
+        dot.dataset.index = index;
+        dot.addEventListener("click", () => goToScene(index));
+        dotsContainer.appendChild(dot);
+      });
+    }
+
+    function updateDots() {
+      const dots = dotsContainer.querySelectorAll(".dot");
+      dots.forEach((dot, i) => {
+        dot.classList.toggle("active", i === currentSceneIndex);
+      });
+    }
+
+    function buildVariantTabs(scene) {
+      variantTabsContainer.innerHTML = "";
+      scene.variants.forEach((variant, index) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className =
+          "variant-tab" + (index === currentVariantIndex ? " active" : "");
+        btn.textContent = `Look ${index + 1}`;
+        btn.dataset.index = index;
+        btn.addEventListener("click", () => {
+          currentVariantIndex = index;
+          applyVariant();
+          updateVariantTabs();
+        });
+        variantTabsContainer.appendChild(btn);
+      });
+    }
+
+    function updateVariantTabs() {
+      const tabs = variantTabsContainer.querySelectorAll(".variant-tab");
+      tabs.forEach((tab, i) => {
+        tab.classList.toggle("active", i === currentVariantIndex);
+      });
+    }
+
+    function applyScene() {
+      const scene = scenes[currentSceneIndex];
+      currentVariantIndex = 0;
+
+      scenePillText.textContent = `${scene.label} · Scene ${
+        currentSceneIndex + 1
+      } of ${scenes.length}`;
+      scenePillHint.textContent = scene.pillHint;
+      sceneChip.textContent = `${scene.label} · Scene ${
+        currentSceneIndex + 1
+      } of ${scenes.length}`;
+      avatarSceneTitle.textContent = scene.title;
+      avatarSceneSubtitle.textContent = scene.subtitle;
+      promptFootMain.textContent = scene.foot;
+
+      buildVariantTabs(scene);
+      applyVariant();
+      updateDots();
+    }
+
+    function applyVariant() {
+      const scene = scenes[currentSceneIndex];
+      const variant = scene.variants[currentVariantIndex];
+
+      promptBodyEl.innerHTML = variant.promptHtml.trim();
+      variantTag.textContent = variant.tag;
+      variantTitle.textContent = variant.title;
+      variantNote.textContent = variant.note;
+
+      avatarImage.src = variant.img;
+      avatarImage.alt = `${scene.label} ${variant.label}`;
+
+      variantBadges.innerHTML = "";
+      variant.bullets.forEach((b) => {
+        const badge = document.createElement("div");
+        badge.className = "avatar-badge";
+        badge.textContent = b;
+        variantBadges.appendChild(badge);
+      });
+
+      updateVariantTabs();
+    }
+
+    function goToScene(index) {
+      if (index < 0) index = scenes.length - 1;
+      if (index >= scenes.length) index = 0;
+      currentSceneIndex = index;
+      applyScene();
+    }
+
+    prevSceneBtn.addEventListener("click", () =>
+      goToScene(currentSceneIndex - 1)
+    );
+    nextSceneBtn.addEventListener("click", () =>
+      goToScene(currentSceneIndex + 1)
+    );
+
+    buildDots();
+    applyScene();
+  </script>
+</body>
+</html>
